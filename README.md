@@ -92,6 +92,18 @@ A few choices worth calling out:
   so four columns on `users` is the whole feature, actually wired into
   `ProcessCashback` → `CashbackPayout` → `PaystackPaymentProvider`, and
   seeded for every factory-made user so the flow is exercisable end to end.
+- **`users/{user}/purchases` is exempt from CSRF verification**
+  (`bootstrap/app.php`), even though it lives in `routes/web.php` alongside
+  the achievements GET the assessment requires there. `web.php` routes get
+  the `web` middleware group by default, which includes CSRF protection —
+  correct for a session-backed HTML form, wrong for a JSON API meant to be
+  called directly (exactly as the README's own `curl -X POST` example does).
+  GET requests are never CSRF-checked, so the achievements endpoint needed
+  no such exception. This is invisible to `php artisan test`: Laravel's test
+  kernel disables CSRF verification automatically while running under
+  PHPUnit, so this only ever surfaces against a real HTTP client — worth
+  knowing if you extend this API and wonder why a new POST route 419s in
+  production-like use but never in the test suite.
 
 ## Cashback payment provider
 
@@ -181,6 +193,18 @@ set `PAYSTACK_SECRET_KEY` in `.env` before `docker compose up` (see
 - **`exec ./docker-entrypoint.sh: permission denied`.** Fixed as of this
   commit — see the comment on `ENTRYPOINT` in the `Dockerfile`. If you're on
   an older checkout: `chmod +x docker-entrypoint.sh` and rebuild.
+- **`docker compose exec app php artisan test` connects to the real
+  Postgres/Redis instead of the isolated sqlite/sync test setup**, which —
+  if you hit this before this commit — means `RefreshDatabase`'s
+  `migrate:fresh` ran against your *live* seeded database and wiped it.
+  Fixed in `phpunit.xml` (see the comment there); re-seed with
+  `docker compose exec app php artisan db:seed --force` if this happened to
+  you. Root cause: `docker-compose.yml` sets `DB_CONNECTION`,
+  `QUEUE_CONNECTION`, `APP_KEY`, etc. as real container environment
+  variables for the actual running app, and PHPUnit's `<env>` overrides
+  silently no-op against a variable the OS process already has — PHPUnit
+  also only overrides `$_ENV`/`getenv()`, never `$_SERVER`, which is where
+  Laravel's env reader actually looks first. `phpunit.xml` now forces both.
 
 ### Running locally without Docker
 

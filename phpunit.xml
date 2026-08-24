@@ -18,19 +18,71 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="BROADCAST_CONNECTION" value="null"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DB_URL" value=""/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!--
+        Both <env> (with force="true") AND the matching <server> entries
+        below are required — this isn't redundancy. Two separate things
+        need overriding:
+
+        1. force="true" on <env>: without it, PHPUnit only calls putenv()
+           when the OS process doesn't already have that variable — and
+           inside the `app`/`worker` Docker containers, docker-compose.yml
+           *already* defines APP_KEY, APP_ENV, DB_CONNECTION,
+           QUEUE_CONNECTION, and CACHE_STORE as real container environment
+           variables (pgsql/redis/live APP_KEY, for the actual running
+           app), so unforced overrides are silently ignored.
+        2. The <server> entries: PHPUnit's <env> only touches putenv()/
+           $_ENV, never $_SERVER — but PHP's CLI SAPI populates $_SERVER
+           directly from the OS environment at process start, and Laravel's
+           underlying phpdotenv repository reads $_SERVER with priority
+           over $_ENV/getenv(). So a Docker-injected DB_CONNECTION sitting
+           in $_SERVER survives <env force="true"> untouched unless it's
+           also overwritten here — <server> entries always overwrite
+           $_SERVER unconditionally, with no force attribute needed.
+
+        Skipping either half of this leaves the gap: running `docker
+        compose exec app php artisan test` would silently run the suite
+        against the *live* Postgres database and Redis queue instead of the
+        isolated sqlite/sync setup this file exists to provide —
+        RefreshDatabase's migrate:fresh would wipe real seeded data, and
+        ShouldQueue listeners like ProcessCashback would queue to a worker
+        instead of running inline, making assertDatabaseHas() checks fail
+        right after the action that should have satisfied them.
+        -->
+        <env name="APP_ENV" value="testing" force="true"/>
+        <server name="APP_ENV" value="testing"/>
+        <!-- Fixed placeholder key, not a real secret: forced so the test
+             suite never depends on a real APP_KEY being present (or
+             correctly propagated into whatever process runs it), since
+             encrypting the session cookie (EncryptCookies, part of the
+             default 'web' middleware group) throws MissingAppKeyException
+             the moment any Feature test makes an HTTP request without one. -->
+        <env name="APP_KEY" value="base64:WoOf/YmB6p5p+ZxLslJIekRy3t7TxRrqMkY0Pp3jSmI=" force="true"/>
+        <server name="APP_KEY" value="base64:WoOf/YmB6p5p+ZxLslJIekRy3t7TxRrqMkY0Pp3jSmI="/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <server name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <server name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null" force="true"/>
+        <server name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <server name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <server name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <server name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_URL" value="" force="true"/>
+        <server name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <server name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <server name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <server name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <server name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+        <server name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false" force="true"/>
+        <server name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>
