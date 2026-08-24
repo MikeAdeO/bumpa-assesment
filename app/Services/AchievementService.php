@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class AchievementService
 {
     /**
-     * Check the user's progress and unlock any achievements they've earned.
+     * Check the user's progress and unlock every achievement they have earned.
      */
     public function process(User $user): void
     {
@@ -33,16 +33,26 @@ class AchievementService
         }
     }
 
-    private function hasUnlocked(User $user, Achievement $achievement): bool
-    {
+    /**
+     * Check whether the user has already unlocked a specific achievement.
+     */
+    private function hasUnlocked(
+        User $user,
+        Achievement $achievement
+    ): bool {
         return UserAchievement::query()
             ->where('user_id', $user->id)
             ->where('achievement_id', $achievement->id)
             ->exists();
     }
 
-    private function qualifies(User $user, Achievement $achievement): bool
-    {
+    /**
+     * Check whether the user's completed purchases satisfy an achievement's rule.
+     */
+    private function qualifies(
+        User $user,
+        Achievement $achievement
+    ): bool {
         return match ($achievement->rule_type) {
             AchievementRuleType::FirstPurchase =>
                 $this->purchaseCount($user) >= 1,
@@ -52,6 +62,9 @@ class AchievementService
         };
     }
 
+    /**
+     * Count only completed purchases because pending or failed purchases should not earn achievements.
+     */
     private function purchaseCount(User $user): int
     {
         return $user->purchases()
@@ -59,10 +72,15 @@ class AchievementService
             ->count();
     }
 
-    private function unlock(User $user, Achievement $achievement): void
-    {
-        $userAchievement = DB::transaction(function () use ($user, $achievement) {
-            return UserAchievement::create([
+    /**
+     * Record the achievement unlock and notify the rest of the system.
+     */
+    private function unlock(
+        User $user,
+        Achievement $achievement
+    ): void {
+        DB::transaction(function () use ($user, $achievement): void {
+            UserAchievement::create([
                 'user_id' => $user->id,
                 'achievement_id' => $achievement->id,
                 'unlocked_at' => now(),
