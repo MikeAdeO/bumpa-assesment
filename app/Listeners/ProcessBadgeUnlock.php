@@ -6,11 +6,12 @@ use App\Events\AchievementUnlocked;
 use App\Events\BadgeUnlocked;
 use App\Models\Badge;
 use App\Models\UserBadge;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 
-class ProcessBadgeUnlock implements ShouldQueue
+class ProcessBadgeUnlock
 {
+    /**
+     * Process newly unlocked achievements and unlock any badges the user has earned.
+     */
     public function handle(AchievementUnlocked $event): void
     {
         $user = $event->user;

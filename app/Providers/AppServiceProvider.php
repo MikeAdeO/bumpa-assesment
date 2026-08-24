@@ -3,10 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\PaymentProvider;
-use App\Events\PurchaseCompleted;
-use App\Listeners\ProcessPurchaseAchievements;
 use App\Payments\LocalPaymentProvider;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,13 +20,10 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the application's event listeners.
+     * Bootstrap the application's services.
      */
     public function boot(): void
     {
-        Event::listen(
-            PurchaseCompleted::class,
-            ProcessPurchaseAchievements::class,
-        );
+        //
     }
 }
