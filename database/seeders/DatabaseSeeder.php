@@ -17,13 +17,14 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
 {
+
     $this->call([
         CurrencySeeder::class,
         ProductSeeder::class,
         AchievementSeeder::class,
         BadgeSeeder::class,
+        SettingSeeder::class,
     ]);
-
     User::factory()->create([
         'name' => 'Test User',
         'email' => 'test@example.com',
