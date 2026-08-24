@@ -167,6 +167,21 @@ To use real Paystack test-mode transfers instead of the simulated provider,
 set `PAYSTACK_SECRET_KEY` in `.env` before `docker compose up` (see
 [Cashback payment provider](#cashback-payment-provider)).
 
+### Troubleshooting
+
+- **`role "bumpa" does not exist` / `migrate` container exits immediately.**
+  Postgres only runs its `POSTGRES_USER`/`POSTGRES_DB` initialization the
+  *first* time its data volume is created — if `postgres_data` already
+  exists from an earlier `docker compose up` (with different credentials, or
+  from an interrupted first run), Postgres skips init and the configured
+  user never gets created. Fix: `docker compose down -v` (the `-v` removes
+  the named volumes, including `postgres_data`) and run
+  `docker compose up --build` again. This only bites repeat local runs —
+  a genuinely fresh `git clone` has no pre-existing volume to collide with.
+- **`exec ./docker-entrypoint.sh: permission denied`.** Fixed as of this
+  commit — see the comment on `ENTRYPOINT` in the `Dockerfile`. If you're on
+  an older checkout: `chmod +x docker-entrypoint.sh` and rebuild.
+
 ### Running locally without Docker
 
 ```bash

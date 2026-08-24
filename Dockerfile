@@ -29,6 +29,12 @@ RUN chmod +x docker-entrypoint.sh \
 
 EXPOSE 8000
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+# Invoked via `sh` rather than executed directly: docker-compose.yml
+# bind-mounts the repo over this image at runtime (`.:/var/www/html`), so
+# the container sees the host's copy of this file — and git clones don't
+# reliably preserve the executable bit `chmod +x` set above. Running it
+# through the shell explicitly means a fresh `git clone` works regardless
+# of what permission bit it landed with on disk.
+ENTRYPOINT ["/bin/sh", "docker-entrypoint.sh"]
 
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
