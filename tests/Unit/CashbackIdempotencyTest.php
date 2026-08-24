@@ -8,6 +8,7 @@ use App\Models\Badge;
 use App\Models\CashbackPayment;
 use App\Models\Setting;
 use App\Models\User;
+use App\Payments\Data\CashbackPayout;
 use App\Services\PaymentService;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,7 +45,8 @@ class CashbackIdempotencyTest extends TestCase
     }
 
     /**
-     * Verify that processing the same badge unlock twice only creates one cashback payment.
+     * Verify that processing the same badge unlock twice
+     * only creates one cashback payment and sends cashback once.
      */
     public function test_same_badge_does_not_create_duplicate_cashback(): void
     {
@@ -58,16 +60,17 @@ class CashbackIdempotencyTest extends TestCase
         $paymentService
             ->shouldReceive('sendCashback')
             ->once()
-            ->with(
-                $user->id,
-                30000,
-                "cashback-{$user->id}-{$badge->id}"
-            )
+            ->withArgs(function (CashbackPayout $payout) use ($user, $badge): bool {
+                return $payout->userId === $user->id
+                    && $payout->amount === 30000
+                    && $payout->currency === 'NGN'
+                    && $payout->reference === "cashback-{$user->id}-{$badge->id}";
+            })
             ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
-            new SettingService()
+            new SettingService
         );
 
         $event = new BadgeUnlocked(
@@ -75,7 +78,11 @@ class CashbackIdempotencyTest extends TestCase
             $user
         );
 
+        // First processing should create and process the cashback.
         $listener->handle($event);
+
+        // Second processing should detect the existing processed payment
+        // and must not send cashback again.
         $listener->handle($event);
 
         $this->assertDatabaseCount('cashback_payments', 1);
@@ -89,7 +96,8 @@ class CashbackIdempotencyTest extends TestCase
     }
 
     /**
-     * Verify that a successfully processed cashback is not sent again when the event is retried.
+     * Verify that a successfully processed cashback
+     * is not sent again when the event is retried.
      */
     public function test_processed_cashback_is_not_sent_again(): void
     {
@@ -103,22 +111,25 @@ class CashbackIdempotencyTest extends TestCase
         $paymentService
             ->shouldReceive('sendCashback')
             ->once()
-            ->with(
-                $user->id,
-                30000,
-                "cashback-{$user->id}-{$badge->id}"
-            )
+            ->withArgs(function (CashbackPayout $payout) use ($user, $badge): bool {
+                return $payout->userId === $user->id
+                    && $payout->amount === 30000
+                    && $payout->currency === 'NGN'
+                    && $payout->reference === "cashback-{$user->id}-{$badge->id}";
+            })
             ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
-            new SettingService()
+            new SettingService
         );
 
+        // First event processes the cashback.
         $listener->handle(
             new BadgeUnlocked($badge->name, $user)
         );
 
+        // Retried event must not send cashback again.
         $listener->handle(
             new BadgeUnlocked($badge->name, $user)
         );
@@ -129,5 +140,12 @@ class CashbackIdempotencyTest extends TestCase
                 ->where('badge_id', $badge->id)
                 ->count()
         );
+
+        $this->assertDatabaseHas('cashback_payments', [
+            'user_id' => $user->id,
+            'badge_id' => $badge->id,
+            'amount' => 30000,
+            'status' => 'processed',
+        ]);
     }
 }

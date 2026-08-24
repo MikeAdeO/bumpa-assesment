@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Achievement;
+use App\Models\AchievementGroup;
 use App\Models\Badge;
 use App\Models\User;
 
@@ -54,7 +55,7 @@ class AchievementProgressService
     private function getNextAvailableAchievements(
         $unlockedAchievementIds
     ): array {
-        return \App\Models\AchievementGroup::query()
+        return AchievementGroup::query()
             ->where('is_active', true)
             ->with([
                 'achievements' => function ($query) use ($unlockedAchievementIds) {
@@ -91,15 +92,13 @@ class AchievementProgressService
 
         $currentBadge = $badges
             ->filter(
-                fn (Badge $badge) =>
-                    $badge->required_achievements <= $unlockedCount
+                fn (Badge $badge) => $badge->required_achievements <= $unlockedCount
             )
             ->last();
 
         $nextBadge = $badges
             ->first(
-                fn (Badge $badge) =>
-                    $badge->required_achievements > $unlockedCount
+                fn (Badge $badge) => $badge->required_achievements > $unlockedCount
             );
 
         return [

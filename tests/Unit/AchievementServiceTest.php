@@ -12,7 +12,6 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\User;
-use App\Models\UserAchievement;
 use App\Services\AchievementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -23,7 +22,9 @@ class AchievementServiceTest extends TestCase
     use RefreshDatabase;
 
     private Currency $currency;
+
     private Product $product;
+
     private AchievementGroup $purchaseGroup;
 
     protected function setUp(): void
@@ -77,8 +78,7 @@ class AchievementServiceTest extends TestCase
 
         Event::assertDispatched(
             AchievementUnlocked::class,
-            fn (AchievementUnlocked $event) =>
-                $event->achievementName === 'First Purchase'
+            fn (AchievementUnlocked $event) => $event->achievementName === 'First Purchase'
                 && $event->user->is($user)
         );
     }

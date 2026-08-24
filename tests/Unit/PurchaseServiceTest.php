@@ -40,7 +40,7 @@ class PurchaseServiceTest extends TestCase
     ): Product {
         return Product::create([
             'name' => 'Test Product',
-            'sku' => 'TEST-' . uniqid(),
+            'sku' => 'TEST-'.uniqid(),
             'description' => 'Test product',
             'price' => $price,
             'currency_id' => $currency->id,
@@ -79,8 +79,7 @@ class PurchaseServiceTest extends TestCase
 
         Event::assertDispatched(
             PurchaseCompleted::class,
-            fn (PurchaseCompleted $event): bool =>
-                $event->purchase->id === $purchase->id
+            fn (PurchaseCompleted $event): bool => $event->purchase->id === $purchase->id
         );
     }
 
@@ -129,7 +128,7 @@ class PurchaseServiceTest extends TestCase
         $firstProduct = $this->createProduct($currency, 10000);
         $secondProduct = Product::create([
             'name' => 'Second Product',
-            'sku' => 'TEST-' . uniqid(),
+            'sku' => 'TEST-'.uniqid(),
             'description' => 'Second test product',
             'price' => 25000,
             'currency_id' => $currency->id,

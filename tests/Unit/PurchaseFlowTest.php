@@ -2,16 +2,13 @@
 
 namespace Tests\Unit;
 
-use App\Enums\PurchaseStatus;
 use App\Models\Achievement;
+use App\Models\AchievementGroup;
 use App\Models\Badge;
 use App\Models\Currency;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
-use App\Models\UserAchievement;
-use App\Models\UserBadge;
-use App\Models\CashbackPayment;
 use App\Services\PurchaseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -149,7 +146,7 @@ class PurchaseFlowTest extends TestCase
     {
         return Product::create([
             'name' => 'Test Product',
-            'sku' => 'TEST-' . uniqid(),
+            'sku' => 'TEST-'.uniqid(),
             'description' => 'Test product',
             'price' => 10000,
             'currency_id' => $currency->id,
@@ -162,7 +159,7 @@ class PurchaseFlowTest extends TestCase
      */
     private function createAchievements(): void
     {
-        $group = \App\Models\AchievementGroup::create([
+        $group = AchievementGroup::create([
             'name' => 'Purchase Achievements',
         ]);
 

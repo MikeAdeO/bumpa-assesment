@@ -22,12 +22,18 @@ class AchievementService
             ->orderBy('sort_order')
             ->get();
 
+        // Computed once per call rather than once per achievement checked —
+        // it doesn't change while we evaluate the achievements below, so
+        // re-querying it inside the loop would just be N redundant COUNT
+        // queries for N achievements.
+        $purchaseCount = $this->purchaseCount($user);
+
         foreach ($achievements as $achievement) {
             if ($this->hasUnlocked($user, $achievement)) {
                 continue;
             }
 
-            if ($this->qualifies($user, $achievement)) {
+            if ($this->qualifies($achievement, $purchaseCount)) {
                 $this->unlock($user, $achievement);
             }
         }
@@ -47,18 +53,16 @@ class AchievementService
     }
 
     /**
-     * Check whether the user's completed purchases satisfy an achievement's rule.
+     * Check whether the user's completed purchase count satisfies an achievement's rule.
      */
     private function qualifies(
-        User $user,
-        Achievement $achievement
+        Achievement $achievement,
+        int $purchaseCount
     ): bool {
         return match ($achievement->rule_type) {
-            AchievementRuleType::FirstPurchase =>
-                $this->purchaseCount($user) >= 1,
+            AchievementRuleType::FirstPurchase => $purchaseCount >= 1,
 
-            AchievementRuleType::PurchaseCount =>
-                $this->purchaseCount($user) >= $achievement->threshold,
+            AchievementRuleType::PurchaseCount => $purchaseCount >= $achievement->threshold,
         };
     }
 

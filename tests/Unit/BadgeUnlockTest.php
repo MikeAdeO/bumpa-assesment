@@ -11,6 +11,7 @@ use App\Models\Badge;
 use App\Models\User;
 use App\Models\UserAchievement;
 use App\Models\UserBadge;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -43,7 +44,7 @@ class BadgeUnlockTest extends TestCase
         ]);
     }
 
-    protected function createAchievements(int $count): \Illuminate\Database\Eloquent\Collection
+    protected function createAchievements(int $count): Collection
     {
         $group = AchievementGroup::create([
             'name' => 'Purchases',
@@ -91,8 +92,7 @@ class BadgeUnlockTest extends TestCase
 
         Event::assertDispatched(
             BadgeUnlocked::class,
-            fn (BadgeUnlocked $event) =>
-                $event->badgeName === 'Starter'
+            fn (BadgeUnlocked $event) => $event->badgeName === 'Starter'
                 && $event->user->is($user)
         );
     }
@@ -130,8 +130,7 @@ class BadgeUnlockTest extends TestCase
 
         Event::assertDispatched(
             BadgeUnlocked::class,
-            fn (BadgeUnlocked $event) =>
-                $event->badgeName === 'Advanced'
+            fn (BadgeUnlocked $event) => $event->badgeName === 'Advanced'
                 && $event->user->is($user)
         );
     }
@@ -169,8 +168,7 @@ class BadgeUnlockTest extends TestCase
 
         Event::assertDispatched(
             BadgeUnlocked::class,
-            fn (BadgeUnlocked $event) =>
-                $event->badgeName === 'Expert'
+            fn (BadgeUnlocked $event) => $event->badgeName === 'Expert'
                 && $event->user->is($user)
         );
     }

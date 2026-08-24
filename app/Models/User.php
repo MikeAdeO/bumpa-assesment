@@ -64,10 +64,15 @@ class User extends Authenticatable
     }
 
     /**
- * Get the cashback payments belonging to the user.
- */
-public function cashbackPayments(): HasMany
-{
-    return $this->hasMany(CashbackPayment::class);
-}
+     * Get the cashback payments belonging to the user.
+     */
+    public function cashbackPayments(): HasMany
+    {
+        return $this->hasMany(CashbackPayment::class);
+    }
+
+    public function paymentAccounts(): HasMany
+    {
+        return $this->hasMany(PaymentAccount::class);
+    }
 }

@@ -12,24 +12,30 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * Safe to run more than once (e.g. every `docker compose up`): the
+     * reference-data seeders below use updateOrCreate/firstOrCreate, and
+     * the demo user is looked up by email instead of being created blindly,
+     * so repeat runs don't pile up duplicate rows or throw on the unique
+     * email constraint.
      */
-
-
     public function run(): void
-{
+    {
+        $this->call([
+            CurrencySeeder::class,
+            ProductSeeder::class,
+            AchievementSeeder::class,
+            BadgeSeeder::class,
+            SettingSeeder::class,
+        ]);
 
-    $this->call([
-        CurrencySeeder::class,
-        ProductSeeder::class,
-        AchievementSeeder::class,
-        BadgeSeeder::class,
-        SettingSeeder::class,
-    ]);
-    User::factory()->create([
-        'name' => 'Test User',
-        'email' => 'test@example.com',
-    ]);
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            ['name' => 'Test User']
+        );
 
-    User::factory()->count(2)->create();
-}
+        if (User::count() < 3) {
+            User::factory()->count(2)->create();
+        }
+    }
 }

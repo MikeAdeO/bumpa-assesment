@@ -1,9 +1,9 @@
 <?php
 
+use App\Enums\PurchaseStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Enums\PurchaseStatus;
 
 return new class extends Migration
 {
@@ -23,10 +23,10 @@ return new class extends Migration
             $table->string('status')
                 ->default(PurchaseStatus::Pending->value);
 
-                $table->foreignId('currency_id')
+            $table->foreignId('currency_id')
                 ->constrained('currencies')
                 ->restrictOnDelete();
-            
+
             $table->unsignedBigInteger('total_amount');
 
             $table->timestamp('purchased_at')->nullable();
@@ -35,15 +35,6 @@ return new class extends Migration
 
             $table->index(['user_id', 'status']);
             $table->index(['user_id', 'purchased_at']);
-
-
-
-
-
-
-
-
-
 
         });
     }

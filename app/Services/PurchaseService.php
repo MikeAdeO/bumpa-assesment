@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Events\PurchaseCompleted;
 use App\Enums\PurchaseStatus;
+use App\Events\PurchaseCompleted;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\User;
@@ -16,7 +16,7 @@ class PurchaseService
     /**
      * Create a completed purchase for a user and trigger the achievement flow.
      *
-     * @param array<int, array{product_id: int, quantity: int}> $items
+     * @param  array<int, array{product_id: int, quantity: int}>  $items
      */
     public function createCompletedPurchase(
         User $user,
@@ -81,7 +81,7 @@ class PurchaseService
 
             $purchase = Purchase::create([
                 'user_id' => $user->id,
-                'reference' => 'PUR-' . Str::upper(Str::random(16)),
+                'reference' => 'PUR-'.Str::upper(Str::random(16)),
                 'status' => PurchaseStatus::Completed,
                 'currency_id' => $currencyId,
                 'total_amount' => $totalAmount,

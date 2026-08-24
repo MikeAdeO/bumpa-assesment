@@ -7,6 +7,7 @@ use App\Listeners\ProcessCashback;
 use App\Models\Badge;
 use App\Models\Setting;
 use App\Models\User;
+use App\Payments\Data\CashbackPayout;
 use App\Services\PaymentService;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,16 +50,16 @@ class CashbackTest extends TestCase
         $paymentService
             ->shouldReceive('sendCashback')
             ->once()
-            ->with(
-                $user->id,
-                30000,
-                Mockery::type('string')
-            )
+            ->withArgs(function (CashbackPayout $payout) use ($user): bool {
+                return $payout->userId === $user->id
+                    && $payout->amount === 30000
+                    && $payout->currency === 'NGN';
+            })
             ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
-            new SettingService()
+            new SettingService
         );
 
         $listener->handle(
@@ -87,16 +88,16 @@ class CashbackTest extends TestCase
         $paymentService
             ->shouldReceive('sendCashback')
             ->once()
-            ->with(
-                $user->id,
-                50000,
-                Mockery::type('string')
-            )
+            ->withArgs(function (CashbackPayout $payout) use ($user): bool {
+                return $payout->userId === $user->id
+                    && $payout->amount === 50000
+                    && $payout->currency === 'NGN';
+            })
             ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
-            new SettingService()
+            new SettingService
         );
 
         $listener->handle(
@@ -125,20 +126,16 @@ class CashbackTest extends TestCase
         $paymentService
             ->shouldReceive('sendCashback')
             ->once()
-            ->withArgs(function (
-                int $userId,
-                int $amount,
-                string $reference
-            ) use ($user, $badge): bool {
-                return $userId === $user->id
-                    && $amount === 30000
-                    && $reference === "cashback-{$user->id}-{$badge->id}";
+            ->withArgs(function (CashbackPayout $payout) use ($user, $badge): bool {
+                return $payout->userId === $user->id
+                    && $payout->amount === 30000
+                    && $payout->reference === "cashback-{$user->id}-{$badge->id}";
             })
             ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
-            new SettingService()
+            new SettingService
         );
 
         $listener->handle(
@@ -162,16 +159,16 @@ class CashbackTest extends TestCase
         $paymentService
             ->shouldReceive('sendCashback')
             ->once()
-            ->with(
-                $user->id,
-                0,
-                Mockery::type('string')
-            )
+            ->withArgs(function (CashbackPayout $payout) use ($user): bool {
+                return $payout->userId === $user->id
+                    && $payout->amount === 0
+                    && $payout->currency === 'NGN';
+            })
             ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
-            new SettingService()
+            new SettingService
         );
 
         $listener->handle(
