@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "bumpa/backend-assessment",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Bumpa Senior Backend Engineer Assessment: event-driven achievements, badges, and cashback service.",
+    "keywords": ["laravel", "achievements", "event-driven", "bumpa"],
     "license": "MIT",
     "require": {
         "php": "^8.2",

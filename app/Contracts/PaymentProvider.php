@@ -2,14 +2,11 @@
 
 namespace App\Contracts;
 
+use App\Payments\Data\CashbackPayout;
+
 interface PaymentProvider
 {
-    /**
-     * Sends a cashback payment to the user's account.
-     */
     public function sendCashback(
-        int $userId,
-        int $amount,
-        string $reference
+        CashbackPayout $payout
     ): bool;
 }

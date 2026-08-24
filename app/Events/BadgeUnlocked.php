@@ -13,6 +13,5 @@ class BadgeUnlocked
     public function __construct(
         public string $badgeName,
         public User $user,
-    ) {
-    }
+    ) {}
 }

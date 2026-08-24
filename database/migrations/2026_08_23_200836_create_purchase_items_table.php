@@ -25,8 +25,6 @@ return new class extends Migration
 
             $table->unsignedBigInteger('unit_price');
             $table->unsignedBigInteger('total_price');
-            
-       
 
             $table->timestamps();
 

@@ -14,22 +14,22 @@ return new class extends Migration
         Schema::create('user_achievements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
-            ->constrained()
-            ->cascadeOnDelete();
+                ->constrained()
+                ->cascadeOnDelete();
 
-        $table->foreignId('achievement_id')
-            ->constrained()
-            ->cascadeOnDelete();
+            $table->foreignId('achievement_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-        $table->timestamp('unlocked_at');
+            $table->timestamp('unlocked_at');
 
-        $table->timestamps();
+            $table->timestamps();
 
-        $table->unique(['user_id', 'achievement_id']);
+            $table->unique(['user_id', 'achievement_id']);
 
-        $table->index(['user_id', 'unlocked_at']);
-    });
-        
+            $table->index(['user_id', 'unlocked_at']);
+        });
+
     }
 
     /**

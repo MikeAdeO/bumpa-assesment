@@ -28,7 +28,7 @@ return new class extends Migration
                 'is_active',
                 'required_achievements',
             ]);
-        
+
         });
     }
 

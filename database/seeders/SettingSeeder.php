@@ -14,7 +14,7 @@ class SettingSeeder extends Seeder
     {
         Setting::updateOrCreate(
             ['key' => 'badge_cashback_amount'],
-            ['value' => '30000'] //in kobo
+            ['value' => '30000'] // in kobo
         );
     }
 }

@@ -28,7 +28,7 @@ return new class extends Migration
             $table->unique(['user_id', 'badge_id']);
 
             $table->index(['user_id', 'unlocked_at']);
-        
+
         });
     }
 
