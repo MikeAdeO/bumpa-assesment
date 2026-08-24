@@ -5,20 +5,20 @@ namespace App\Providers;
 use App\Contracts\PaymentProvider;
 use App\Events\PurchaseCompleted;
 use App\Listeners\ProcessPurchaseAchievements;
-use App\Services\FakePaymentProvider;
+use App\Payments\LocalPaymentProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register application services and bind interfaces to their implementations.
+     * Register the application's services and their dependencies.
      */
     public function register(): void
     {
-        $this->app->singleton(
+        $this->app->bind(
             PaymentProvider::class,
-            FakePaymentProvider::class
+            LocalPaymentProvider::class
         );
     }
 

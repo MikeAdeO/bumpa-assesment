@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Events\BadgeUnlocked;
 use App\Listeners\ProcessCashback;
-
+use App\Models\Badge;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\PaymentService;
@@ -18,11 +18,26 @@ class CashbackTest extends TestCase
     use RefreshDatabase;
 
     /**
+     * Create the badge required by the cashback tests.
+     */
+    private function createStarterBadge(): Badge
+    {
+        return Badge::create([
+            'name' => 'Starter',
+            'description' => 'Starter badge',
+            'required_achievements' => 2,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
      * Verify that unlocking a badge sends the configured cashback amount to the user.
      */
     public function test_badge_unlock_sends_configured_cashback(): void
     {
         $user = User::factory()->create();
+        $this->createStarterBadge();
 
         Setting::create([
             'key' => 'badge_cashback_amount',
@@ -38,7 +53,8 @@ class CashbackTest extends TestCase
                 $user->id,
                 30000,
                 Mockery::type('string')
-            );
+            )
+            ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
@@ -51,8 +67,6 @@ class CashbackTest extends TestCase
                 $user
             )
         );
-
-        $this->assertTrue(true);
     }
 
     /**
@@ -61,6 +75,7 @@ class CashbackTest extends TestCase
     public function test_cashback_amount_comes_from_settings(): void
     {
         $user = User::factory()->create();
+        $this->createStarterBadge();
 
         Setting::create([
             'key' => 'badge_cashback_amount',
@@ -76,7 +91,8 @@ class CashbackTest extends TestCase
                 $user->id,
                 50000,
                 Mockery::type('string')
-            );
+            )
+            ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
@@ -89,16 +105,15 @@ class CashbackTest extends TestCase
                 $user
             )
         );
-
-        $this->assertTrue(true);
     }
 
     /**
-     * Verify that the listener generates a unique-looking reference containing the user and badge.
+     * Verify that the listener generates a reference containing the user and badge identifiers.
      */
     public function test_cashback_reference_contains_user_and_badge(): void
     {
         $user = User::factory()->create();
+        $badge = $this->createStarterBadge();
 
         Setting::create([
             'key' => 'badge_cashback_amount',
@@ -114,12 +129,12 @@ class CashbackTest extends TestCase
                 int $userId,
                 int $amount,
                 string $reference
-            ) use ($user): bool {
+            ) use ($user, $badge): bool {
                 return $userId === $user->id
                     && $amount === 30000
-                    && str_contains($reference, "cashback-{$user->id}-")
-                    && str_contains($reference, 'starter');
-            });
+                    && $reference === "cashback-{$user->id}-{$badge->id}";
+            })
+            ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
@@ -132,16 +147,15 @@ class CashbackTest extends TestCase
                 $user
             )
         );
-
-        $this->assertTrue(true);
     }
 
     /**
-     * Verify that a missing cashback setting safely falls back to zero instead of inventing an amount.
+     * Verify that a missing cashback setting safely falls back to zero.
      */
     public function test_missing_cashback_setting_defaults_to_zero(): void
     {
         $user = User::factory()->create();
+        $this->createStarterBadge();
 
         $paymentService = Mockery::mock(PaymentService::class);
 
@@ -152,7 +166,8 @@ class CashbackTest extends TestCase
                 $user->id,
                 0,
                 Mockery::type('string')
-            );
+            )
+            ->andReturn(true);
 
         $listener = new ProcessCashback(
             $paymentService,
@@ -165,7 +180,5 @@ class CashbackTest extends TestCase
                 $user
             )
         );
-
-        $this->assertTrue(true);
     }
 }
