@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    // Cashback payment provider. AppServiceProvider binds
+    // PaystackPaymentProvider when 'secret' is present, and falls back to
+    // LocalPaymentProvider (simulated, logs only) otherwise — so the app
+    // runs out of the box with no Paystack account needed, and picks up
+    // real transfers as soon as a key is supplied.
+    'paystack' => [
+        'secret' => env('PAYSTACK_SECRET_KEY'),
+        'base_url' => env('PAYSTACK_BASE_URL', 'https://api.paystack.co'),
+    ],
+
 ];

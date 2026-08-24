@@ -212,4 +212,34 @@ class BadgeUnlockTest extends TestCase
 
         Event::assertDispatchedTimes(BadgeUnlocked::class, 1);
     }
+
+    /**
+     * Same rationale as AchievementServiceTest's equivalent test: this
+     * exercises the exact race-safe insert (UserBadge::createOrFirst) that
+     * ProcessBadgeUnlock relies on, proving that a second concurrent
+     * attempt to unlock the same badge falls back to the existing row
+     * instead of throwing on the unique (user_id, badge_id) constraint.
+     */
+    public function test_concurrent_badge_unlock_attempts_do_not_duplicate_or_throw(): void
+    {
+        $this->createBadges();
+
+        $user = User::factory()->create();
+        $starterBadge = Badge::where('name', 'Starter')->firstOrFail();
+
+        $first = UserBadge::createOrFirst(
+            ['user_id' => $user->id, 'badge_id' => $starterBadge->id],
+            ['unlocked_at' => now()]
+        );
+
+        $second = UserBadge::createOrFirst(
+            ['user_id' => $user->id, 'badge_id' => $starterBadge->id],
+            ['unlocked_at' => now()]
+        );
+
+        $this->assertTrue($first->wasRecentlyCreated);
+        $this->assertFalse($second->wasRecentlyCreated);
+        $this->assertSame($first->id, $second->id);
+        $this->assertDatabaseCount('user_badges', 1);
+    }
 }

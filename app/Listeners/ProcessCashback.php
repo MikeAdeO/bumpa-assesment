@@ -46,7 +46,11 @@ class ProcessCashback implements ShouldQueue
             $cashbackAmount,
             $reference
         ): void {
-          
+            // createOrFirst() safely handles two concurrent first-time
+            // unlocks racing to insert the same (user_id, badge_id) row: if
+            // both miss the initial SELECT, the loser's INSERT hits the
+            // unique constraint and it falls back to re-selecting the
+            // winner's row instead of throwing.
             CashbackPayment::createOrFirst(
                 [
                     'user_id' => $event->user->id,
@@ -59,6 +63,10 @@ class ProcessCashback implements ShouldQueue
                 ]
             );
 
+            // Re-select with a row lock held for the rest of the
+            // transaction so two workers processing the same (retried or
+            // duplicated) BadgeUnlocked event cannot both observe
+            // status = "pending" and both send the payout.
             $payment = CashbackPayment::query()
                 ->where('user_id', $event->user->id)
                 ->where('badge_id', $badge->id)
@@ -69,19 +77,14 @@ class ProcessCashback implements ShouldQueue
                 return;
             }
 
-            $paymentAccount = $event->user
-                ->paymentAccounts()
-                ->where('is_active', true)
-                ->first();
-
             $payout = new CashbackPayout(
                 userId: $event->user->id,
                 amount: $payment->amount,
                 currency: 'NGN',
                 reference: $payment->reference,
-                accountNumber: $paymentAccount?->account_number ?? '',
-                bankCode: $paymentAccount?->metadata['bank_code'] ?? '',
-                accountName: $paymentAccount?->account_name,
+                accountNumber: $event->user->bank_account_number,
+                bankCode: $event->user->bank_code,
+                accountName: $event->user->bank_account_name,
             );
 
             $successful = $this->paymentService->sendCashback($payout);

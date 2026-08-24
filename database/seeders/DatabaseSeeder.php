@@ -29,10 +29,16 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
         ]);
 
-        User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            ['name' => 'Test User']
-        );
+        // Not User::firstOrCreate(): that would insert with only the
+        // attributes given, skipping UserFactory::definition() entirely —
+        // password, email_verified_at, and remember_token would all be
+        // left unset and fail the NOT NULL constraint on `password`.
+        if (! User::where('email', 'test@example.com')->exists()) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         if (User::count() < 3) {
             User::factory()->count(2)->create();

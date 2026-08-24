@@ -23,6 +23,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'bank_account_number',
+        'bank_code',
+        'bank_account_name',
+        'paystack_recipient_code',
     ];
 
     /**
@@ -69,10 +73,5 @@ class User extends Authenticatable
     public function cashbackPayments(): HasMany
     {
         return $this->hasMany(CashbackPayment::class);
-    }
-
-    public function paymentAccounts(): HasMany
-    {
-        return $this->hasMany(PaymentAccount::class);
     }
 }

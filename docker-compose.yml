@@ -1,4 +1,34 @@
 services:
+  # One-shot service: generates .env/APP_KEY if missing and runs
+  # migrations + seeders exactly once before app/worker start. Keeping
+  # this separate (instead of having `app` and `worker` both run
+  # `artisan migrate` on boot) avoids two containers racing to apply the
+  # same migration concurrently.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bumpa_migrate
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
+
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-bumpa}
+      DB_USERNAME: ${DB_USERNAME:-bumpa}
+      DB_PASSWORD: ${DB_PASSWORD:-bumpa_secret}
+    command: ["migrate"]
+
   app:
     build:
       context: .
@@ -8,31 +38,36 @@ services:
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
+      - vendor:/var/www/html/vendor
     ports:
       - "${APP_PORT:-8000}:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_started
     environment:
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
 
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-bumpa}
+      DB_USERNAME: ${DB_USERNAME:-bumpa}
+      DB_PASSWORD: ${DB_PASSWORD:-bumpa_secret}
 
       QUEUE_CONNECTION: redis
       CACHE_STORE: redis
 
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_PORT: 6379
+
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_BASE_URL: ${PAYSTACK_BASE_URL:-https://api.paystack.co}
 
   worker:
     build:
@@ -43,30 +78,34 @@ services:
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
+      - vendor:/var/www/html/vendor
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_started
     environment:
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_KEY: ${APP_KEY}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
 
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE:-bumpa}
+      DB_USERNAME: ${DB_USERNAME:-bumpa}
+      DB_PASSWORD: ${DB_PASSWORD:-bumpa_secret}
 
       QUEUE_CONNECTION: redis
       CACHE_STORE: redis
 
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_PORT: 6379
+
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_BASE_URL: ${PAYSTACK_BASE_URL:-https://api.paystack.co}
 
     command:
       - php
@@ -82,9 +121,9 @@ services:
     container_name: bumpa_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-bumpa}
+      POSTGRES_USER: ${DB_USERNAME:-bumpa}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bumpa_secret}
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -92,7 +131,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"
+          "pg_isready -U ${DB_USERNAME:-bumpa} -d ${DB_DATABASE:-bumpa}"
         ]
       interval: 5s
       timeout: 5s
@@ -109,3 +148,10 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  # Named (not anonymous) so the image's built-in vendor/ seeds it on
+  # first run instead of being shadowed by the host bind-mount above —
+  # on a fresh `git clone` the repo has no vendor/ directory (it's
+  # gitignored), so without this volume the bind-mount would hide the
+  # vendor/ that was installed during `docker build` and every container
+  # would fail on "class not found".
+  vendor:

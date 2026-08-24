@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\User;
+use App\Models\UserAchievement;
 use App\Services\AchievementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -128,6 +129,33 @@ class AchievementServiceTest extends TestCase
             AchievementUnlocked::class,
             1
         );
+    }
+
+   
+    public function test_concurrent_unlock_attempts_do_not_duplicate_or_throw(): void
+    {
+        $achievement = $this->createAchievement(
+            'First Purchase',
+            AchievementRuleType::FirstPurchase,
+            1
+        );
+
+        $user = User::factory()->create();
+
+        $first = UserAchievement::createOrFirst(
+            ['user_id' => $user->id, 'achievement_id' => $achievement->id],
+            ['unlocked_at' => now()]
+        );
+
+        $second = UserAchievement::createOrFirst(
+            ['user_id' => $user->id, 'achievement_id' => $achievement->id],
+            ['unlocked_at' => now()]
+        );
+
+        $this->assertTrue($first->wasRecentlyCreated);
+        $this->assertFalse($second->wasRecentlyCreated);
+        $this->assertSame($first->id, $second->id);
+        $this->assertDatabaseCount('user_achievements', 1);
     }
 
     public function test_pending_purchase_does_not_unlock_achievement(): void

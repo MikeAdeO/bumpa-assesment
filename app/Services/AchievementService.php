@@ -7,7 +7,6 @@ use App\Events\AchievementUnlocked;
 use App\Models\Achievement;
 use App\Models\User;
 use App\Models\UserAchievement;
-use Illuminate\Support\Facades\DB;
 
 class AchievementService
 {
@@ -78,18 +77,31 @@ class AchievementService
 
     /**
      * Record the achievement unlock and notify the rest of the system.
+     *
+     * Uses createOrFirst() rather than create() so that two purchases for
+     * the same user processed concurrently can't both win the insert and
+     * both dispatch AchievementUnlocked for the same achievement: the
+     * loser's insert hits the unique constraint on (user_id,
+     * achievement_id) and createOrFirst() falls back to the winner's row
+     * instead of throwing.
      */
     private function unlock(
         User $user,
         Achievement $achievement
     ): void {
-        DB::transaction(function () use ($user, $achievement): void {
-            UserAchievement::create([
+        $userAchievement = UserAchievement::createOrFirst(
+            [
                 'user_id' => $user->id,
                 'achievement_id' => $achievement->id,
+            ],
+            [
                 'unlocked_at' => now(),
-            ]);
-        });
+            ]
+        );
+
+        if (! $userAchievement->wasRecentlyCreated) {
+            return;
+        }
 
         AchievementUnlocked::dispatch(
             $achievement->name,

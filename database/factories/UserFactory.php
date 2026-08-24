@@ -24,12 +24,24 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $name = fake()->name();
+
         return [
-            'name' => fake()->name(),
+            'name' => $name,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+
+            // A payout destination for every factory-made user, so the
+            // cashback chain is exercisable end to end (in tests and in the
+            // seeded demo data) without a separate account-onboarding step.
+            // Bank code 044 (Access Bank) + a fake 10-digit NUBAN is enough
+            // for Paystack's test-mode transfer recipient endpoint; it's
+            // meaningless once real (non-test) Paystack keys are used.
+            'bank_account_number' => fake()->numerify('##########'),
+            'bank_code' => '044',
+            'bank_account_name' => $name,
         ];
     }
 

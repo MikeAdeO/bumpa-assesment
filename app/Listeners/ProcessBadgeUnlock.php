@@ -25,21 +25,26 @@ class ProcessBadgeUnlock
             ->get();
 
         foreach ($badges as $badge) {
-            // Don't unlock the same badge twice.
-            $alreadyUnlocked = UserBadge::query()
-                ->where('user_id', $user->id)
-                ->where('badge_id', $badge->id)
-                ->exists();
+            // createOrFirst() is both the "don't unlock twice" check and the
+            // write, in one race-safe step: if two purchases from the same
+            // user get processed concurrently and both reach this line for
+            // the same badge, the loser's insert hits the unique constraint
+            // on (user_id, badge_id) and it falls back to the winner's row
+            // instead of throwing — so only the winner's process dispatches
+            // BadgeUnlocked below.
+            $userBadge = UserBadge::createOrFirst(
+                [
+                    'user_id' => $user->id,
+                    'badge_id' => $badge->id,
+                ],
+                [
+                    'unlocked_at' => now(),
+                ]
+            );
 
-            if ($alreadyUnlocked) {
+            if (! $userBadge->wasRecentlyCreated) {
                 continue;
             }
-
-            UserBadge::create([
-                'user_id' => $user->id,
-                'badge_id' => $badge->id,
-                'unlocked_at' => now(),
-            ]);
 
             BadgeUnlocked::dispatch(
                 $badge->name,

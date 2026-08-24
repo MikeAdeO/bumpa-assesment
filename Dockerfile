@@ -24,8 +24,11 @@ RUN composer install \
 
 COPY . .
 
-RUN php artisan package:discover --ansi
+RUN chmod +x docker-entrypoint.sh \
+    && php artisan package:discover --ansi
 
 EXPOSE 8000
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
